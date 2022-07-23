@@ -19,13 +19,23 @@ end
 
 local Menu_buf_no
 local Current_config
+
+local function get_project_cmds()
+  local res = Current_config["projects"][vim.loop.cwd()]
+  if res == nil then
+    res = {}
+    Current_config["projects"][vim.loop.cwd()] = res
+  end
+  return res
+end
+
 M.save_commands = function()
   local lines = vim.api.nvim_buf_get_lines(Menu_buf_no, 0, -1, true)
-  Current_config["projects"][vim.loop.cwd()] = {}
-  -- print(vim.inspect(Current_config))
+  local res = Current_config["projects"][vim.loop.cwd()]
+  if res == nil then
+    Current_config["projects"][vim.loop.cwd()] = {}
+  end
   Current_config["projects"][vim.loop.cwd()] = lines
-  -- print(vim.inspect(Current_config))
-  -- Path:new(config_file):rm()
   Path:new(config_file):write(vim.fn.json_encode(Current_config), "w")
 end
 
@@ -35,7 +45,7 @@ M.setup = function()
 end
 
 M.run_cmd_async = function(line_no)
-  local line = Current_config["projects"][vim.loop.cwd()][line_no]
+  local line = get_project_cmds()[line_no]
   local words = mysplit(line, " ")
   local command = words[1]
   local args = { unpack(words, 2) }
@@ -63,7 +73,7 @@ M.create_window = function()
   local height = 20
   local borderchars = { "─", "│", "─", "│", "╭", "╮", "╯", "╰" }
 
-  local contents = Current_config["projects"][vim.loop.cwd()]
+  local contents = get_project_cmds()
   local bufnr = vim.api.nvim_create_buf(false, false)
   Menu_buf_no = bufnr
   local win_id, _ = popup.create(Menu_buf_no, {
@@ -100,12 +110,5 @@ M.create_window = function()
 end
 
 M.setup()
-
-
-vim.keymap.set("n", "yr1", function()
-  M.run_cmd_async(1)
-end)
-
-vim.keymap.set("n", "yrq", M.create_window)
 
 return M
